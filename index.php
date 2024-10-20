@@ -1,36 +1,36 @@
 <?php
 session_start();
-
 // Initialize the array if it doesn't exist
 if (!isset($_SESSION['items'])) {
     $_SESSION['items'] = [];
 }
-
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
-    $id = $_POST['id'] ?? '';
+    $id = isset($_POST['id']) ? intval($_POST['id']) : null;
     $item = $_POST['item'] ?? '';
-
     switch ($action) {
         case 'create':
             $_SESSION['items'][] = $item;
             break;
         case 'update':
-            if (isset($_SESSION['items'][$id])) {
-                $_SESSION['items'][$id] = $item;
+            if (isset($_SESSION['items'][$id - 1])) {
+                $_SESSION['items'][$id - 1] = $item;
             }
             break;
         case 'delete':
-            if (isset($_SESSION['items'][$id])) {
-                unset($_SESSION['items'][$id]);
-                $_SESSION['items'] = array_values($_SESSION['items']);
+            if (isset($_SESSION['items'][$id - 1])) {
+                array_splice($_SESSION['items'], $id - 1, 1);
             }
             break;
     }
 }
-?>
 
+// Echo items
+echo "<pre>";
+print_r($_SESSION['items']);
+echo "</pre>";
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="text" name="item" required>
         <button type="submit">Add Item</button>
     </form>
-
+    
     <!-- Read Table -->
     <h2>Item List</h2>
     <table>
@@ -88,15 +88,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </tr>
         </thead>
         <tbody>
-            <?php foreach ($_SESSION['items'] as $id => $item): ?>
+            <?php foreach ($_SESSION['items'] as $index => $item): ?>
             <tr>
-                <td><?php echo $id; ?></td>
+                <td><?php echo $index + 1; ?></td>
                 <td><?php echo htmlspecialchars($item); ?></td>
                 <td>
-                    <button onclick="editItem(<?php echo $id; ?>, '<?php echo htmlspecialchars($item, ENT_QUOTES); ?>')">Edit</button>
+                    <button onclick="editItem(<?php echo $index + 1; ?>, '<?php echo htmlspecialchars($item, ENT_QUOTES); ?>')">Edit</button>
                     <form method="post" style="display: inline;">
                         <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="id" value="<?php echo $id; ?>">
+                        <input type="hidden" name="id" value="<?php echo $index + 1; ?>">
                         <button type="submit">Delete</button>
                     </form>
                 </td>
@@ -104,7 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endforeach; ?>
         </tbody>
     </table>
-
+    
     <!-- Update Form (hidden by default) -->
     <div id="updateForm" style="display: none;">
         <h2>Edit Item</h2>
@@ -116,14 +116,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <button type="button" onclick="cancelEdit()">Cancel</button>
         </form>
     </div>
-
+    
     <script>
         function editItem(id, item) {
             document.getElementById('updateForm').style.display = 'block';
             document.getElementById('updateId').value = id;
             document.getElementById('updateItem').value = item;
         }
-
         function cancelEdit() {
             document.getElementById('updateForm').style.display = 'none';
         }
